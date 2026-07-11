@@ -1,3 +1,3 @@
-## Expert Parallel and Tenor Parallel Mixture of Experts (MoE)
+## Expert Parallel and Tensor Parallel Mixture of Experts (MoE)
 
 ### Work-In-Progress
