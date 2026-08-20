@@ -11,39 +11,31 @@ The repo also includes the supporting pieces used to build that MoE: manual MPI 
 
 ```text
 moe/                 MoE models, tests, and TP vs EP benchmark
-  moe.py             SimpleMoE, ShardedLinear, MoE_TP, MoE_EP
-  test_moe.py
-  benchmark.py
-  analysis.md
 parallel/            MPI collectives and transformer parallel comms
-  mpi_wrapper/       Allreduce / Alltoall (library + from-scratch)
-  data/              data-parallel input split
-  model/             get_info + naive model-parallel forward/backward
-  tests/
-  mpi-test.py
-kernels/
-  matmul_triton.ipynb   fused D = ReLU(A @ B + C) in fp16
+kernels/             fused D = ReLU(A @ B + C) in fp16 (Triton)
+scripts/             local OpenMPI download/build + uv venv helpers
+.deps/openmpi/       OpenMPI prefix (created by the install script, not committed)
+.venv/               uv virtualenv (not committed)
 ```
 
 ## Setup
 
-Needs a machine with MPI and at least a few CPU cores (8 is enough for the parallel tests).
+Needs a C compiler (`cc` / clang / gcc), `make`, `curl`, and [uv](https://docs.astral.sh/uv/). No system MPI package. OpenMPI is downloaded into `.deps/openmpi` (not committed).
 
 ```bash
-# macOS
-brew install openmpi
-
-# Linux
-sudo apt install libopenmpi-dev
+chmod +x scripts/*.sh
+./scripts/setup.sh          # curl + build OpenMPI, uv venv, install Python deps
+source scripts/activate.sh  # local mpirun/mpicc on PATH + .venv
 ```
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install "setuptools<72" wheel   # mpi4py 3.1.5 needs an older setuptools
-pip install mpi4py==3.1.5 --no-build-isolation
-pip install -r requirements.txt
-```
+| Script | What it does |
+|---|---|
+| `scripts/setup.sh` | Runs `install_openmpi.sh` if needed, then `uv venv` and installs `requirements.txt` plus `mpi4py` built against the local `mpicc` |
+| `scripts/install_openmpi.sh` | Curls OpenMPI 4.1.8, configures, and installs under `.deps/openmpi` |
+| `scripts/env.sh` | Puts `.deps/openmpi` on `PATH` / `LD_LIBRARY_PATH` / `MPICC` |
+| `scripts/activate.sh` | Sources `env.sh` and activates `.venv` (use this in every new shell) |
+
+Override the OpenMPI version with `OPENMPI_VERSION=4.1.8 ./scripts/install_openmpi.sh`. A few CPU cores are enough (8 for the parallel tests). Fortran is not required.
 
 ## Mixture of Experts
 
@@ -58,7 +50,7 @@ pip install -r requirements.txt
 On 4 ranks with one BLAS thread per rank, EP is about **1.6–2.3× faster** than TP for modest expert widths: each rank runs one expert on the tokens that routed to it, while TP still shards every active expert over the full batch. Details and tables are in [`moe/analysis.md`](moe/analysis.md).
 
 ```bash
-source .venv/bin/activate
+source scripts/activate.sh
 cd moe
 
 mpirun -n 2 python test_moe.py
@@ -78,7 +70,7 @@ mpirun -n 4 python benchmark.py --repeats 3
 - **Naive model-parallel `W_o`** — all-gather on the forward path; slice + reduce-scatter on the backward path.
 
 ```bash
-source .venv/bin/activate
+source scripts/activate.sh
 cd parallel
 
 mpirun -n 8 python mpi-test.py --test_case myallreduce
@@ -94,7 +86,12 @@ mpirun -n 4 python -m pytest -l -v --with-mpi tests/test_transformer_backward.py
 
 [`kernels/matmul_triton.ipynb`](kernels/matmul_triton.ipynb) computes **`D = ReLU(A @ B + C)`** in fp16 with tiled shared-memory loads, a register accumulator, and fused add + ReLU. It is meant to be run on an NVIDIA GPU (Colab T4). The last cell grid-searches `BLOCK_M / BLOCK_N / BLOCK_K`.
 
-Needs `torch` and `triton` in addition to `requirements.txt`.
+Needs `torch` and `triton` on top of the CPU deps:
+
+```bash
+uv pip install torch triton
+# or: uv sync --extra gpu
+```
 
 ## License
 
