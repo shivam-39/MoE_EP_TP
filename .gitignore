@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+*.egg-info/
+.DS_Store
+.ipynb_checkpoints/
+*.hdf5
+.idea/
+.vscode/
