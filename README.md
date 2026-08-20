@@ -20,7 +20,7 @@ scripts/             local OpenMPI download/build + uv venv helpers
 
 ## Setup
 
-Needs a C compiler (`cc` / clang / gcc), `make`, `curl`, and [uv](https://docs.astral.sh/uv/). No system MPI package. OpenMPI is downloaded into `.deps/openmpi` (not committed).
+Needs a C compiler (`cc` / clang / gcc), `make`, `curl`, and [uv](https://docs.astral.sh/uv/). No system MPI package. OpenMPI is downloaded into `.deps/openmpi`.
 
 ```bash
 chmod +x scripts/*.sh
@@ -28,12 +28,6 @@ chmod +x scripts/*.sh
 source scripts/activate.sh  # local mpirun/mpicc on PATH + .venv
 ```
 
-| Script | What it does |
-|---|---|
-| `scripts/setup.sh` | Runs `install_openmpi.sh` if needed, then `uv venv` and installs `requirements.txt` plus `mpi4py` built against the local `mpicc` |
-| `scripts/install_openmpi.sh` | Curls OpenMPI 4.1.8, configures, and installs under `.deps/openmpi` |
-| `scripts/env.sh` | Puts `.deps/openmpi` on `PATH` / `LD_LIBRARY_PATH` / `MPICC` |
-| `scripts/activate.sh` | Sources `env.sh` and activates `.venv` (use this in every new shell) |
 
 Override the OpenMPI version with `OPENMPI_VERSION=4.1.8 ./scripts/install_openmpi.sh`. A few CPU cores are enough (8 for the parallel tests). Fortran is not required.
 

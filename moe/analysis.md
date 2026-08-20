@@ -1,4 +1,4 @@
-# Part 1.3: TP vs EP MoE Performance
+# TP vs EP MoE Performance
 
 Benchmarks ran on a 10-core CPU with `mpirun -n 4` (one expert per rank) and `OMP_NUM_THREADS=1` so the four ranks do not oversubscribe BLAS. Times are milliseconds per forward. Collectives go through the assignment wrapper (`allreduce` / `alltoall` of NumPy objects).
 
